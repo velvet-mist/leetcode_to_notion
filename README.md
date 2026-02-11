@@ -1,7 +1,3 @@
-Here’s a clean, professional README tailored for your **LeetCode → Notion auto-sync project**.
-You can copy this directly into `README.md`.
-
----
 
 # 🚀 LeetCode → Notion Sync
 
