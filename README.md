@@ -156,6 +156,78 @@ Handled internally by checking title before insertion.
 
 ---
 
+## Automatic Background Sync (macOS)
+
+You can run the sync automatically in the background using macOS's built-in `launchd` service. This will keep your Notion database up-to-date without manual intervention.
+
+### Quick Setup
+
+```bash
+# Make the setup script executable
+chmod +x setup_launchd.sh
+
+# Install and start the background service
+./setup_launchd.sh install
+```
+
+### Managing the Service
+
+```bash
+# Check if the service is running
+./setup_launchd.sh status
+
+# View live logs (shows when problems are synced)
+./setup_launchd.sh logs
+
+# Run sync manually once (useful for testing)
+./setup_launchd.sh run
+
+# Stop the background service
+./setup_launchd.sh stop
+
+# Start the background service again
+./setup_launchd.sh start
+
+# Uninstall the background service
+./setup_launchd.sh uninstall
+```
+
+### Configuration
+
+The service is configured to run every **30 minutes** by default. To change this interval:
+
+1. Edit `com.user.leetcode_notion_sync.plist`
+2. Change the `StartInterval` value:
+   - `900` = 15 minutes
+   - `1800` = 30 minutes (default)
+   - `3600` = 1 hour
+   - `86400` = 1 day
+3. Reload the service:
+   ```bash
+   ./setup_launchd.sh uninstall
+   ./setup_launchd.sh install
+   ```
+
+### Logs
+
+- **Success logs**: `~/Library/Logs/leetcode_notion_sync.log`
+- **Error logs**: `~/Library/Logs/leetcode_notion_sync.err`
+
+View live logs:
+```bash
+tail -f ~/Library/Logs/leetcode_notion_sync.log
+```
+
+### Benefits
+
+✅ Runs automatically in the background  
+✅ Starts on login/reboot  
+✅ Uses minimal resources  
+✅ Only syncs new submissions (efficient)  
+✅ All output logged for troubleshooting
+
+---
+
 ## 🧠 Why This Exists
 
 LeetCode tracks problem stats.

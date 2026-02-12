@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Unique identifier for the service -->
+    <key>Label</key>
+    <string>com.user.leetcode_notion_sync</string>
+    
+    <!-- Path to Python interpreter (uses virtual environment) -->
+    <key>Program</key>
+    <string>/Users/snehasinha/leetcode_to_notion/.venv/bin/python3</string>
+    
+    <!-- Arguments: path to main script -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/snehasinha/leetcode_to_notion/.venv/bin/python3</string>
+        <string>/Users/snehasinha/leetcode_to_notion/main.py</string>
+    </array>
+    
+    <!-- Working directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/snehasinha/leetcode_to_notion</string>
+    
+    <!-- Environment variables - uncomment and customize if needed -->
+    <!-- <key>EnvironmentVariables</key> -->
+    <!-- <dict> -->
+    <!--     <key>NOTION_TOKEN</key> -->
+    <!--     <string>your_token_here</string> -->
+    <!-- </dict> -->
+    
+    <!-- Run every 1800 seconds (30 minutes) - change as needed -->
+    <!-- 900 = 15 min, 1800 = 30 min, 3600 = 1 hour, 86400 = 1 day -->
+    <key>StartInterval</key>
+    <integer>1800</integer>
+    
+    <!-- Start immediately when loaded -->
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <!-- Standard output and error logs -->
+    <key>StandardOutPath</key>
+    <string>/Users/snehasinha/Library/Logs/leetcode_notion_sync.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/snehasinha/Library/Logs/leetcode_notion_sync.err</string>
+    
+    <!-- Keep alive - restart on failure -->
+    <key>KeepAlive</key>
+    <false/>
+    
+    <!-- Network requirement (needed for API calls) -->
+    <key>NetworkState</key>
+    <true/>
+</dict>
+</plist>
