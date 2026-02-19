@@ -74,7 +74,6 @@ def ensure_database(token: str, parent_page_id: str) -> str:
         "parent": {"type": "page_id", "page_id": parent_page_id},
         "title": [{"type": "text", "text": {"content": "LeetCode Solves"}}],
         "properties": {
-            "No.": {"number": {}},
             "Name": {"title": {}},
             "Link": {"url": {}},
             "Difficulty Level": {"select": {"options": [
@@ -223,12 +222,12 @@ def build_notion_properties(question: Dict, last_solved_ts: int) -> Dict:
     url = f"https://leetcode.com/problems/{slug}/" if slug else ""
 
     props = {
-        "No.": {"number": question_id},
+        "Question ID": {"number": question_id},
         "Name": {"title": [{"text": {"content": title}}]},
         "Link": {"url": url},
         "Difficulty Level": {"select": {"name": difficulty}} if difficulty else {"select": None},
         "Topic": {"multi_select": [{"name": t} for t in topics]},
-        "Question ID": {"number": question_id},
+       
     }
     if last_solved_ts:
         dt = datetime.fromtimestamp(last_solved_ts, tz=timezone.utc)
