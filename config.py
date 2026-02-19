@@ -14,7 +14,7 @@ LEETCODE_CSRF = os.getenv("LEETCODE_CSRF")
 
 # Notion database properties schema
 NOTION_PROPERTIES = {
-    "No.": {"type": "number", "format": "number"},
+    "Question ID": {"type": "number", "format": "number"},
     "Name": {"type": "title"},
     "Link": {"type": "url"},
     "Difficulty Level": {
@@ -26,18 +26,17 @@ NOTION_PROPERTIES = {
         ]
     },
     "Topic": {"type": "multi_select"},
-    "Question ID": {"type": "number", "format": "number"},
+
     "Last Solved": {"type": "date"}
 }
 
 # Field mapping from internal names to Notion property names
 NOTION_FIELD_MAPPING = {
-    "no": "No.",
+    "question_id": "Question ID",
     "name": "Name",
     "link": "Link",
     "difficulty": "Difficulty Level",
     "topics": "Topic",
-    "question_id": "Question ID",
     "last_solved": "Last Solved"
 }
 
