@@ -113,11 +113,11 @@ def validate_notion_token(value: str) -> str:
     if not value:
         raise ValidationError("NOTION_TOKEN cannot be empty")
     
-    if not value.startswith("secret_"):
-        raise ValidationError(
-            "NOTION_TOKEN should start with 'secret_'. "
-            "Get it from https://www.notion.so/my-integrations"
-        )
+    # if not value.startswith("secret_"):
+    #     raise ValidationError(
+    #         "NOTION_TOKEN should start with 'secret_'. "
+    #         "Get it from https://www.notion.so/my-integrations"
+    #     )
     
     return value.strip()
 
