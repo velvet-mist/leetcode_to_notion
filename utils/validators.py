@@ -175,7 +175,10 @@ def validate_cookie_header(value: str) -> str:
     return normalized
 
 
-def validate_env_vars(env_vars: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+def validate_env_vars(
+    env_vars: Optional[Dict[str, str]] = None,
+    require_leetcode: bool = True,
+) -> Dict[str, str]:
     """
     Validate all required environment variables.
     
@@ -239,23 +242,29 @@ def validate_env_vars(env_vars: Optional[Dict[str, str]] = None) -> Dict[str, st
         except ValidationError as e:
             errors.append(str(e))
 
-    try:
-        if not session_cookie:
-            raise ValidationError(
-                "Missing LeetCode auth. Set LEETCODE_SESSION or provide LEETCODE_COOKIE."
-            )
-        validated["LEETCODE_SESSION"] = validate_session_cookie(session_cookie)
-    except ValidationError as e:
-        errors.append(str(e))
+    if require_leetcode:
+        try:
+            if not session_cookie:
+                raise ValidationError(
+                    "Missing LeetCode auth. Set LEETCODE_SESSION or provide LEETCODE_COOKIE."
+                )
+            validated["LEETCODE_SESSION"] = validate_session_cookie(session_cookie)
+        except ValidationError as e:
+            errors.append(str(e))
 
-    try:
-        if not csrf_token:
-            raise ValidationError(
-                "Missing LeetCode auth. Set LEETCODE_CSRF or provide LEETCODE_COOKIE."
-            )
-        validated["LEETCODE_CSRF"] = validate_csrf_token(csrf_token)
-    except ValidationError as e:
-        errors.append(str(e))
+        try:
+            if not csrf_token:
+                raise ValidationError(
+                    "Missing LeetCode auth. Set LEETCODE_CSRF or provide LEETCODE_COOKIE."
+                )
+            validated["LEETCODE_CSRF"] = validate_csrf_token(csrf_token)
+        except ValidationError as e:
+            errors.append(str(e))
+    else:
+        if session_cookie:
+            validated["LEETCODE_SESSION"] = session_cookie
+        if csrf_token:
+            validated["LEETCODE_CSRF"] = csrf_token
     
     # Add optional variables if present
     for var_name in OPTIONAL_ENV_VARS:

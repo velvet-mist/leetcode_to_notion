@@ -15,6 +15,7 @@ Usage:
 import argparse
 import csv
 import json
+import re
 import sys
 from collections import Counter
 from datetime import datetime, timezone
@@ -144,6 +145,70 @@ def summarize_dataset(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _extract_notion_title(prop: Dict[str, Any]) -> str:
+    """Extract title text from a Notion title property."""
+    title_items = prop.get("title", []) if isinstance(prop, dict) else []
+    if not title_items:
+        return ""
+    first = title_items[0]
+    return first.get("plain_text") or first.get("text", {}).get("content", "")
+
+
+def _extract_slug_from_link(link: str) -> str:
+    """Extract LeetCode slug from problem URL."""
+    if not link:
+        return ""
+    match = re.search(r"/problems/([^/]+)/?", link)
+    return match.group(1) if match else ""
+
+
+def _parse_iso_to_unix(iso_str: str) -> int:
+    """Parse ISO datetime string to Unix timestamp."""
+    if not iso_str:
+        return 0
+    normalized = iso_str.replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(normalized)
+    except ValueError:
+        return 0
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return int(dt.timestamp())
+
+
+def build_dataset_from_notion_db(notion_client: NotionClient, db_id: str) -> List[Dict[str, Any]]:
+    """Build dataset rows by reading existing rows from Notion DB."""
+    pages = notion_client.query_database(db_id)
+    rows: List[Dict[str, Any]] = []
+
+    for page in pages:
+        props = page.properties
+
+        qid = int(props.get("Question ID", {}).get("number") or 0)
+        title = _extract_notion_title(props.get("Name", {}))
+        link = props.get("Link", {}).get("url") or ""
+        difficulty = (props.get("Difficulty Level", {}).get("select") or {}).get("name") or ""
+        topics = [item.get("name", "") for item in props.get("Topic", {}).get("multi_select", []) if item.get("name")]
+        solved_iso = (props.get("Last Solved", {}).get("date") or {}).get("start") or ""
+        solved_ts = _parse_iso_to_unix(solved_iso)
+
+        rows.append({
+            "question_id": qid,
+            "title": title,
+            "title_slug": _extract_slug_from_link(link),
+            "difficulty": difficulty,
+            "topics": topics,
+            "topics_joined": "|".join(topics),
+            "topic_count": len(topics),
+            "solved_timestamp": solved_ts,
+            "solved_at_utc": solved_iso,
+            "link": link,
+        })
+
+    rows.sort(key=lambda row: row.get("solved_timestamp", 0), reverse=True)
+    return rows
+
+
 def sync_submissions(
     lc_client: LeetCodeClient,
     notion_client: NotionClient,
@@ -229,6 +294,12 @@ def main():
     parser.add_argument("--force-recreate", action="store_true", help="Force recreate database")
     parser.add_argument("--resync", action="store_true", help="Resync from scratch")
     parser.add_argument("--export-dataset", action="store_true", help="Export solved-question dataset")
+    parser.add_argument(
+        "--dataset-source",
+        choices=["leetcode", "notion"],
+        default="leetcode",
+        help="Dataset source: live LeetCode fetch or existing Notion DB rows",
+    )
     parser.add_argument("--dataset-format", choices=["csv", "json"], default="csv", help="Dataset file format")
     parser.add_argument("--dataset-path", default="", help="Custom dataset output path")
     parser.add_argument("--analysis-summary", action="store_true", help="Print difficulty/topic summary")
@@ -247,37 +318,56 @@ def main():
     load_dotenv(ENV_PATH)
     
     try:
-        env = validate_env_vars()
+        env = validate_env_vars(require_leetcode=(args.dataset_source == "leetcode"))
     except ValidationError as e:
         logger.error(f"Configuration error:\n{e}")
         sys.exit(1)
     
-    lc_client = LeetCodeClient(
-        session_cookie=env["LEETCODE_SESSION"],
-        csrf_token=env["LEETCODE_CSRF"],
-        cookie_header=env.get("LEETCODE_COOKIE"),
-    )
     notion_client = NotionClient(token=env["NOTION_TOKEN"])
-    
-    logger.info("Validating LeetCode session...")
-    if not lc_client.validate_session():
-        logger.error("Invalid LeetCode session. Please check your cookies.")
-        sys.exit(1)
-    
-    state = load_state()
-    last_timestamp = 0 if args.resync else state.get("last_seen_ts", 0)
-    
-    if args.resync:
-        logger.info("Resync mode: starting from scratch")
-    else:
-        logger.info(f"Last sync: {datetime.fromtimestamp(last_timestamp, tz=timezone.utc)}")
-    
+
     db_id = notion_client.ensure_database(
         parent_page_id=env["NOTION_PARENT_PAGE_ID"],
         db_id_path=DB_ID_PATH,
         force_create=args.force_recreate
     )
     logger.info(f"Using database: {db_id}")
+
+    if args.dataset_source == "notion":
+        dataset_rows = build_dataset_from_notion_db(notion_client, db_id)
+
+        if args.export_dataset:
+            timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+            default_name = f"leetcode_dataset_notion_{timestamp}.{args.dataset_format}"
+            output_path = Path(args.dataset_path) if args.dataset_path else (DATA_DIR / default_name)
+            saved_to = write_dataset(dataset_rows, output_path, args.dataset_format)
+            logger.info(f"Dataset exported from Notion: {saved_to} ({len(dataset_rows)} rows)")
+
+        if args.analysis_summary:
+            summary = summarize_dataset(dataset_rows)
+            logger.info("Analysis Summary")
+            logger.info(f"  Questions: {summary['total_questions']}")
+            logger.info(f"  Difficulty: {summary['difficulty_distribution']}")
+            logger.info(f"  Top topics: {summary['top_topics']}")
+        return
+
+    lc_client = LeetCodeClient(
+        session_cookie=env["LEETCODE_SESSION"],
+        csrf_token=env["LEETCODE_CSRF"],
+        cookie_header=env.get("LEETCODE_COOKIE"),
+    )
+
+    logger.info("Validating LeetCode session...")
+    if not lc_client.validate_session():
+        logger.error("Invalid LeetCode session. Please check your cookies.")
+        sys.exit(1)
+
+    state = load_state()
+    last_timestamp = 0 if args.resync else state.get("last_seen_ts", 0)
+
+    if args.resync:
+        logger.info("Resync mode: starting from scratch")
+    else:
+        logger.info(f"Last sync: {datetime.fromtimestamp(last_timestamp, tz=timezone.utc)}")
     
     try:
         stats, newest_ts, dataset_rows = sync_submissions(

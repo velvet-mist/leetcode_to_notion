@@ -26,6 +26,7 @@ class LeetCodeClient:
     # API endpoints
     BASE_URL = "https://leetcode.com"
     SUBMISSIONS_API = f"{BASE_URL}/api/submissions/"
+    PROBLEMS_ALL_API = f"{BASE_URL}/api/problems/all/"
     GRAPHQL_URL = f"{BASE_URL}/graphql"
     
     # Retry configuration
@@ -56,9 +57,8 @@ class LeetCodeClient:
     """
 
     SUBMISSION_LIST_QUERY = """
-    query submissionList($offset: Int!, $limit: Int!, $lastKey: String) {
-      submissionList(offset: $offset, limit: $limit, lastKey: $lastKey) {
-        lastKey
+    query submissionList($offset: Int!, $limit: Int!) {
+      submissionList(offset: $offset, limit: $limit) {
         hasNext
         submissions {
           titleSlug
@@ -254,6 +254,27 @@ class LeetCodeClient:
         """
         logger.info(f"Fetching submissions since timestamp {last_timestamp}")
 
+        # Full resync mode: use complete solved list, then enrich with timestamps
+        # from recent submissions when available.
+        if last_timestamp == 0:
+            try:
+                all_solved, _ = self._fetch_solved_from_problems_all(0)
+                try:
+                    recent_solved, newest_ts = self._fetch_accepted_submissions_since_rest(0)
+                except LeetCodeError:
+                    recent_solved, newest_ts = self._fetch_accepted_submissions_since_graphql(0)
+
+                merged = dict(all_solved)
+                merged.update(recent_solved)
+                logger.info(
+                    f"Resync assembled {len(merged)} solved problems "
+                    f"({len(recent_solved)} with timestamps)"
+                )
+                return merged, newest_ts
+            except LeetCodeError:
+                # Fall through to original strategy.
+                pass
+
         try:
             return self._fetch_accepted_submissions_since_rest(last_timestamp)
         except LeetCodeError as e:
@@ -262,7 +283,15 @@ class LeetCodeClient:
                     "REST submissions endpoint returned 403; "
                     "falling back to GraphQL submissionList."
                 )
-                return self._fetch_accepted_submissions_since_graphql(last_timestamp)
+                submissions, newest_ts = self._fetch_accepted_submissions_since_graphql(last_timestamp)
+                if submissions and not (last_timestamp == 0 and len(submissions) <= 20):
+                    return submissions, newest_ts
+
+                logger.warning(
+                    "GraphQL submissions are unavailable or limited; "
+                    "falling back to /api/problems/all/ solved list."
+                )
+                return self._fetch_solved_from_problems_all(last_timestamp)
             raise
 
     def _fetch_accepted_submissions_since_rest(
@@ -317,16 +346,19 @@ class LeetCodeClient:
         """Fetch accepted submissions using GraphQL submissionList endpoint."""
         submissions: Dict[str, int] = {}
         max_timestamp = last_timestamp
-        last_key: Optional[str] = None
+        offset = 0
+        limit = 100
 
+        page = 0
         while True:
             payload = {
                 "query": self.SUBMISSION_LIST_QUERY,
-                "variables": {"offset": 0, "limit": 100, "lastKey": last_key},
+                "variables": {"offset": offset, "limit": limit},
             }
             response = self._request_with_retry("POST", self.GRAPHQL_URL, json=payload)
             data = response.json().get("data", {}).get("submissionList", {})
             submissions_list = data.get("submissions", [])
+            page += 1
 
             if not submissions_list:
                 break
@@ -351,12 +383,48 @@ class LeetCodeClient:
             if not data.get("hasNext"):
                 break
 
-            last_key = data.get("lastKey")
-            if not last_key:
+            offset += limit
+            # LeetCode may report hasNext=true but still only expose first page.
+            if page >= 1 and len(submissions_list) < limit:
                 break
 
         logger.info(f"Found {len(submissions)} new accepted submissions (GraphQL)")
         return submissions, max_timestamp
+
+    def _fetch_solved_from_problems_all(
+        self,
+        last_timestamp: int,
+    ) -> Tuple[Dict[str, int], int]:
+        """
+        Fetch solved problems from /api/problems/all/.
+
+        Note: This endpoint does not provide solve timestamps, so incremental
+        sync from a non-zero last_timestamp is not supported.
+        """
+        if last_timestamp > 0:
+            logger.warning(
+                "/api/problems/all/ fallback has no timestamps; "
+                "cannot safely do incremental sync. Returning no new submissions."
+            )
+            return {}, last_timestamp
+
+        response = self._request_with_retry("GET", self.PROBLEMS_ALL_API)
+        data = response.json()
+        pairs = data.get("stat_status_pairs", [])
+
+        submissions: Dict[str, int] = {}
+        for item in pairs:
+            if item.get("status") != "ac":
+                continue
+            stat = item.get("stat", {})
+            slug = stat.get("question__title_slug")
+            if slug:
+                submissions[slug] = 0
+
+        logger.info(
+            f"Found {len(submissions)} solved problems via /api/problems/all/ fallback"
+        )
+        return submissions, 0
     
     def fetch_question_data(self, slug: str) -> Optional[Question]:
         """

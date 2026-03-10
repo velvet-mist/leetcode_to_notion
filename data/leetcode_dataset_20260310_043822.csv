@@ -1,0 +1,73 @@
+question_id,title,title_slug,difficulty,topics_joined,topic_count,solved_timestamp,solved_at_utc,link
+4056,Longest Balanced Substring II,longest-balanced-substring-ii,Medium,Hash Table|String|Prefix Sum,3,0,,https://leetcode.com/problems/longest-balanced-substring-ii/
+4055,Longest Balanced Substring I,longest-balanced-substring-i,Medium,Hash Table|String|Counting|Enumeration,4,0,,https://leetcode.com/problems/longest-balanced-substring-i/
+4047,Longest Balanced Subarray II,longest-balanced-subarray-ii,Hard,Array|Hash Table|Divide and Conquer|Segment Tree|Prefix Sum,5,0,,https://leetcode.com/problems/longest-balanced-subarray-ii/
+4045,Longest Balanced Subarray I,longest-balanced-subarray-i,Medium,Array|Hash Table|Divide and Conquer|Segment Tree|Prefix Sum,5,0,,https://leetcode.com/problems/longest-balanced-subarray-i/
+3983,Minimum Operations to Equalize Binary String,minimum-operations-to-equalize-binary-string,Hard,Math|String|Breadth-First Search|Union-Find|Ordered Set,5,0,,https://leetcode.com/problems/minimum-operations-to-equalize-binary-string/
+3958,Minimum Removals to Balance Array,minimum-removals-to-balance-array,Medium,Array|Binary Search|Sliding Window|Sorting,4,0,,https://leetcode.com/problems/minimum-removals-to-balance-array/
+3952,Trionic Array I,trionic-array-i,Easy,Array,1,0,,https://leetcode.com/problems/trionic-array-i/
+3832,Minimum Cost to Reach Every Position,minimum-cost-to-reach-every-position,Easy,Array,1,0,,https://leetcode.com/problems/minimum-cost-to-reach-every-position/
+3651,Transformed Array,transformed-array,Easy,Array|Simulation,2,0,,https://leetcode.com/problems/transformed-array/
+3525,Maximum Energy Boost From Two Drinks,maximum-energy-boost-from-two-drinks,Medium,Array|Dynamic Programming,2,0,,https://leetcode.com/problems/maximum-energy-boost-from-two-drinks/
+3407,Find All Possible Stable Binary Arrays II,find-all-possible-stable-binary-arrays-ii,Hard,Dynamic Programming|Prefix Sum,2,1773112176,2026-03-10T03:09:36+00:00,https://leetcode.com/problems/find-all-possible-stable-binary-arrays-ii/
+3406,Find All Possible Stable Binary Arrays I,find-all-possible-stable-binary-arrays-i,Medium,Dynamic Programming|Prefix Sum,2,1773036964,2026-03-09T06:16:04+00:00,https://leetcode.com/problems/find-all-possible-stable-binary-arrays-i/
+3263,Divide an Array Into Subarrays With Minimum Cost I,divide-an-array-into-subarrays-with-minimum-cost-i,Easy,Array|Sorting|Enumeration,3,0,,https://leetcode.com/problems/divide-an-array-into-subarrays-with-minimum-cost-i/
+3143,Longest Unequal Adjacent Groups Subsequence I,longest-unequal-adjacent-groups-subsequence-i,Easy,Array|String|Dynamic Programming|Greedy,4,0,,https://leetcode.com/problems/longest-unequal-adjacent-groups-subsequence-i/
+2722,Prime In Diagonal,prime-in-diagonal,Easy,Array|Math|Matrix|Number Theory,4,1772677595,2026-03-05T02:26:35+00:00,https://leetcode.com/problems/prime-in-diagonal/
+2481,Strictly Palindromic Number,strictly-palindromic-number,Medium,Math|Two Pointers|Brainteaser,3,0,,https://leetcode.com/problems/strictly-palindromic-number/
+2383,Add Two Integers,add-two-integers,Easy,Math,1,0,,https://leetcode.com/problems/add-two-integers/
+2271,Rearrange Array Elements by Sign,rearrange-array-elements-by-sign,Medium,Array|Two Pointers|Simulation,3,0,,https://leetcode.com/problems/rearrange-array-elements-by-sign/
+2107,Find Unique Binary String,find-unique-binary-string,Medium,Array|Hash Table|String|Backtracking,4,1772970597,2026-03-08T11:49:57+00:00,https://leetcode.com/problems/find-unique-binary-string/
+2058,Concatenation of Array,concatenation-of-array,Easy,Array|Simulation,2,0,,https://leetcode.com/problems/concatenation-of-array/
+2034,Minimum Absolute Difference Queries,minimum-absolute-difference-queries,Medium,Array|Prefix Sum,2,0,,https://leetcode.com/problems/minimum-absolute-difference-queries/
+2017,Minimum Number of Flips to Make the Binary String Alternating,minimum-number-of-flips-to-make-the-binary-string-alternating,Medium,String|Dynamic Programming|Sliding Window,3,1772901024,2026-03-07T16:30:24+00:00,https://leetcode.com/problems/minimum-number-of-flips-to-make-the-binary-string-alternating/
+2005,Check if All the Integers in a Range Are Covered,check-if-all-the-integers-in-a-range-are-covered,Easy,Array|Hash Table|Prefix Sum,3,0,,https://leetcode.com/problems/check-if-all-the-integers-in-a-range-are-covered/
+1910,Check if Binary String Has at Most One Segment of Ones,check-if-binary-string-has-at-most-one-segment-of-ones,Easy,String,1,1772763282,2026-03-06T02:14:42+00:00,https://leetcode.com/problems/check-if-binary-string-has-at-most-one-segment-of-ones/
+1894,Merge Strings Alternately,merge-strings-alternately,Easy,Two Pointers|String,2,0,,https://leetcode.com/problems/merge-strings-alternately/
+1884,Minimum Changes To Make Alternating Binary String,minimum-changes-to-make-alternating-binary-string,Easy,String,1,1772676764,2026-03-05T02:12:44+00:00,https://leetcode.com/problems/minimum-changes-to-make-alternating-binary-string/
+1807,Partitioning Into Minimum Number Of Deci-Binary Numbers,partitioning-into-minimum-number-of-deci-binary-numbers,Medium,String|Greedy,2,0,,https://leetcode.com/problems/partitioning-into-minimum-number-of-deci-binary-numbers/
+1791,Richest Customer Wealth,richest-customer-wealth,Easy,Array|Matrix,2,0,,https://leetcode.com/problems/richest-customer-wealth/
+1756,Minimum Deletions to Make String Balanced,minimum-deletions-to-make-string-balanced,Medium,String|Dynamic Programming|Stack,3,0,,https://leetcode.com/problems/minimum-deletions-to-make-string-balanced/
+1704,Special Positions in a Binary Matrix,special-positions-in-a-binary-matrix,Easy,Array|Matrix,2,0,,https://leetcode.com/problems/special-positions-in-a-binary-matrix/
+1667,Find Kth Bit in Nth Binary String,find-kth-bit-in-nth-binary-string,Medium,String|Recursion|Simulation,3,0,,https://leetcode.com/problems/find-kth-bit-in-nth-binary-string/
+1658,Minimum Swaps to Arrange a Binary Grid,minimum-swaps-to-arrange-a-binary-grid,Medium,Array|Greedy|Matrix,3,0,,https://leetcode.com/problems/minimum-swaps-to-arrange-a-binary-grid/
+1557,Check If a String Contains All Binary Codes of Size K,check-if-a-string-contains-all-binary-codes-of-size-k,Medium,Hash Table|String|Bit Manipulation|Rolling Hash|Hash Function,5,0,,https://leetcode.com/problems/check-if-a-string-contains-all-binary-codes-of-size-k/
+1520,Number of Steps to Reduce a Number in Binary Representation to One,number-of-steps-to-reduce-a-number-in-binary-representation-to-one,Medium,String|Bit Manipulation|Simulation,3,0,,https://leetcode.com/problems/number-of-steps-to-reduce-a-number-in-binary-representation-to-one/
+1458,Sort Integers by The Number of 1 Bits,sort-integers-by-the-number-of-1-bits,Easy,Array|Bit Manipulation|Sorting|Counting,4,0,,https://leetcode.com/problems/sort-integers-by-the-number-of-1-bits/
+1413,Maximum Side Length of a Square with Sum Less than or Equal to Threshold,maximum-side-length-of-a-square-with-sum-less-than-or-equal-to-threshold,Medium,Array|Binary Search|Matrix|Prefix Sum,4,0,,https://leetcode.com/problems/maximum-side-length-of-a-square-with-sum-less-than-or-equal-to-threshold/
+1300,Critical Connections in a Network,critical-connections-in-a-network,Hard,Depth-First Search|Graph Theory|Biconnected Component,3,1772681416,2026-03-05T03:30:16+00:00,https://leetcode.com/problems/critical-connections-in-a-network/
+1285,Balance a Binary Search Tree,balance-a-binary-search-tree,Medium,Divide and Conquer|Greedy|Tree|Depth-First Search|Binary Search Tree|Binary Tree,6,0,,https://leetcode.com/problems/balance-a-binary-search-tree/
+1079,Sum of Root To Leaf Binary Numbers,sum-of-root-to-leaf-binary-numbers,Easy,Tree|Depth-First Search|Binary Tree,3,0,,https://leetcode.com/problems/sum-of-root-to-leaf-binary-numbers/
+903,Implement Rand10() Using Rand7(),implement-rand10-using-rand7,Medium,Math|Rejection Sampling|Randomized|Probability and Statistics,4,1772791729,2026-03-06T10:08:49+00:00,https://leetcode.com/problems/implement-rand10-using-rand7/
+763,Special Binary String,special-binary-string,Hard,String|Divide and Conquer|Sorting,3,0,,https://leetcode.com/problems/special-binary-string/
+696,Count Binary Substrings,count-binary-substrings,Easy,Two Pointers|String,2,0,,https://leetcode.com/problems/count-binary-substrings/
+693,Binary Number with Alternating Bits,binary-number-with-alternating-bits,Easy,Bit Manipulation,1,0,,https://leetcode.com/problems/binary-number-with-alternating-bits/
+401,Binary Watch,binary-watch,Easy,Backtracking|Bit Manipulation,2,0,,https://leetcode.com/problems/binary-watch/
+393,UTF-8 Validation,utf-8-validation,Medium,Array|Bit Manipulation,2,0,,https://leetcode.com/problems/utf-8-validation/
+383,Ransom Note,ransom-note,Easy,Hash Table|String|Counting,3,1772764525,2026-03-06T02:35:25+00:00,https://leetcode.com/problems/ransom-note/
+268,Missing Number,missing-number,Easy,Array|Hash Table|Math|Binary Search|Bit Manipulation|Sorting,6,0,,https://leetcode.com/problems/missing-number/
+204,Count Primes,count-primes,Medium,Array|Math|Enumeration|Number Theory,4,0,,https://leetcode.com/problems/count-primes/
+195,Tenth Line,tenth-line,Easy,Shell,1,1772763500,2026-03-06T02:18:20+00:00,https://leetcode.com/problems/tenth-line/
+194,Transpose File,transpose-file,Medium,Shell,1,1772765441,2026-03-06T02:50:41+00:00,https://leetcode.com/problems/transpose-file/
+193,Valid Phone Numbers,valid-phone-numbers,Easy,Shell,1,1772765279,2026-03-06T02:47:59+00:00,https://leetcode.com/problems/valid-phone-numbers/
+192,Word Frequency,word-frequency,Medium,Shell,1,1772765133,2026-03-06T02:45:33+00:00,https://leetcode.com/problems/word-frequency/
+190,Reverse Bits,reverse-bits,Easy,Divide and Conquer|Bit Manipulation,2,0,,https://leetcode.com/problems/reverse-bits/
+127,Word Ladder,word-ladder,Hard,Hash Table|String|Breadth-First Search,3,0,,https://leetcode.com/problems/word-ladder/
+110,Balanced Binary Tree,balanced-binary-tree,Easy,Tree|Depth-First Search|Binary Tree,3,0,,https://leetcode.com/problems/balanced-binary-tree/
+94,Binary Tree Inorder Traversal,binary-tree-inorder-traversal,Easy,Stack|Tree|Depth-First Search|Binary Tree,4,0,,https://leetcode.com/problems/binary-tree-inorder-traversal/
+79,Word Search,word-search,Medium,Array|String|Backtracking|Depth-First Search|Matrix,5,0,,https://leetcode.com/problems/word-search/
+67,Add Binary,add-binary,Easy,Math|String|Bit Manipulation|Simulation,4,0,,https://leetcode.com/problems/add-binary/
+66,Plus One,plus-one,Easy,Array|Math,2,0,,https://leetcode.com/problems/plus-one/
+44,Wildcard Matching,wildcard-matching,Hard,String|Dynamic Programming|Greedy|Recursion,4,0,,https://leetcode.com/problems/wildcard-matching/
+32,Longest Valid Parentheses,longest-valid-parentheses,Hard,String|Dynamic Programming|Stack,3,0,,https://leetcode.com/problems/longest-valid-parentheses/
+16,3Sum Closest,3sum-closest,Medium,Array|Two Pointers|Sorting,3,1772771035,2026-03-06T04:23:55+00:00,https://leetcode.com/problems/3sum-closest/
+15,3Sum,3sum,Medium,Array|Two Pointers|Sorting,3,0,,https://leetcode.com/problems/3sum/
+14,Longest Common Prefix,longest-common-prefix,Easy,Array|String|Trie,3,1772766310,2026-03-06T03:05:10+00:00,https://leetcode.com/problems/longest-common-prefix/
+13,Roman to Integer,roman-to-integer,Easy,Hash Table|Math|String,3,0,,https://leetcode.com/problems/roman-to-integer/
+11,Container With Most Water,container-with-most-water,Medium,Array|Two Pointers|Greedy,3,0,,https://leetcode.com/problems/container-with-most-water/
+10,Regular Expression Matching,regular-expression-matching,Hard,String|Dynamic Programming|Recursion,3,0,,https://leetcode.com/problems/regular-expression-matching/
+9,Palindrome Number,palindrome-number,Easy,Math,1,0,,https://leetcode.com/problems/palindrome-number/
+4,Median of Two Sorted Arrays,median-of-two-sorted-arrays,Hard,Array|Binary Search|Divide and Conquer,3,0,,https://leetcode.com/problems/median-of-two-sorted-arrays/
+3,Longest Substring Without Repeating Characters,longest-substring-without-repeating-characters,Medium,Hash Table|String|Sliding Window,3,0,,https://leetcode.com/problems/longest-substring-without-repeating-characters/
+2,Add Two Numbers,add-two-numbers,Medium,Linked List|Math|Recursion,3,0,,https://leetcode.com/problems/add-two-numbers/
+1,Two Sum,two-sum,Easy,Array|Hash Table,2,0,,https://leetcode.com/problems/two-sum/

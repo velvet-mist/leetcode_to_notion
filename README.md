@@ -126,6 +126,12 @@ Export dataset and print summary:
 python3 main.py --resync --export-dataset --dataset-format csv --analysis-summary
 ```
 
+Export from existing Notion DB (no LeetCode auth required for this mode):
+
+```bash
+python3 main.py --dataset-source notion --export-dataset --dataset-format csv --analysis-summary
+```
+
 Custom output path:
 
 ```bash
