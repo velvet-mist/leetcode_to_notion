@@ -17,8 +17,6 @@ class ValidationError(Exception):
 REQUIRED_ENV_VARS = [
     "NOTION_TOKEN",
     "NOTION_PARENT_PAGE_ID",
-    "LEETCODE_SESSION",
-    "LEETCODE_CSRF",
 ]
 
 # Optional environment variables
@@ -28,6 +26,7 @@ OPTIONAL_ENV_VARS = [
     "LOG_FILE",
     "DRY_RUN",
     "VERBOSE",
+    "LEETCODE_COOKIE",
 ]
 
 # Notion ID pattern (32 hex characters)
@@ -147,6 +146,35 @@ def validate_session_cookie(value: str) -> str:
     return value.strip()
 
 
+def validate_cookie_header(value: str) -> str:
+    """
+    Validate a raw Cookie header string from browser/devtools.
+
+    Args:
+        value: Cookie header value (with or without "Cookie:" prefix)
+
+    Returns:
+        Normalized cookie header value
+
+    Raises:
+        ValidationError: If cookie header is invalid
+    """
+    if not value:
+        raise ValidationError("LEETCODE_COOKIE cannot be empty")
+
+    normalized = value.strip()
+    if normalized.lower().startswith("cookie:"):
+        normalized = normalized.split(":", 1)[1].strip()
+
+    if "=" not in normalized or ";" not in normalized:
+        raise ValidationError(
+            "LEETCODE_COOKIE should look like a full browser cookie header "
+            "(example: key1=value1; key2=value2)"
+        )
+
+    return normalized
+
+
 def validate_env_vars(env_vars: Optional[Dict[str, str]] = None) -> Dict[str, str]:
     """
     Validate all required environment variables.
@@ -166,7 +194,7 @@ def validate_env_vars(env_vars: Optional[Dict[str, str]] = None) -> Dict[str, st
     errors: List[str] = []
     validated: Dict[str, str] = {}
     
-    # Check required variables
+    # Check required Notion variables
     for var_name in REQUIRED_ENV_VARS:
         value = env_vars.get(var_name, "").strip()
         
@@ -188,11 +216,51 @@ def validate_env_vars(env_vars: Optional[Dict[str, str]] = None) -> Dict[str, st
                 validated[var_name] = value
         except ValidationError as e:
             errors.append(str(e))
+
+    # LeetCode auth: either direct pair or full cookie header
+    raw_cookie_header = env_vars.get("LEETCODE_COOKIE", "").strip()
+    session_cookie = env_vars.get("LEETCODE_SESSION", "").strip()
+    csrf_token = env_vars.get("LEETCODE_CSRF", "").strip()
+
+    if raw_cookie_header:
+        try:
+            cookie_header = validate_cookie_header(raw_cookie_header)
+            validated["LEETCODE_COOKIE"] = cookie_header
+
+            # Derive missing values from full cookie header when possible
+            if not session_cookie:
+                match = re.search(r"(?:^|;\s*)LEETCODE_SESSION=([^;]+)", cookie_header)
+                if match:
+                    session_cookie = match.group(1).strip()
+            if not csrf_token:
+                match = re.search(r"(?:^|;\s*)csrftoken=([^;]+)", cookie_header)
+                if match:
+                    csrf_token = match.group(1).strip()
+        except ValidationError as e:
+            errors.append(str(e))
+
+    try:
+        if not session_cookie:
+            raise ValidationError(
+                "Missing LeetCode auth. Set LEETCODE_SESSION or provide LEETCODE_COOKIE."
+            )
+        validated["LEETCODE_SESSION"] = validate_session_cookie(session_cookie)
+    except ValidationError as e:
+        errors.append(str(e))
+
+    try:
+        if not csrf_token:
+            raise ValidationError(
+                "Missing LeetCode auth. Set LEETCODE_CSRF or provide LEETCODE_COOKIE."
+            )
+        validated["LEETCODE_CSRF"] = validate_csrf_token(csrf_token)
+    except ValidationError as e:
+        errors.append(str(e))
     
     # Add optional variables if present
     for var_name in OPTIONAL_ENV_VARS:
         value = env_vars.get(var_name, "").strip()
-        if value:
+        if value and var_name not in validated:
             validated[var_name] = value
     
     if errors:
@@ -215,4 +283,3 @@ def check_env_file(env_path: Path) -> None:
         print("  NOTION_PARENT_PAGE_ID=your_page_id")
         print("  LEETCODE_SESSION=your_session_cookie")
         print("  LEETCODE_CSRF=your_csrf_token")
-

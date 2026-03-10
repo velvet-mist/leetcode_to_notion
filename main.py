@@ -13,8 +13,10 @@ Usage:
 """
 
 import argparse
+import csv
 import json
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -34,6 +36,7 @@ BASE_DIR = Path(__file__).resolve().parent
 STATE_PATH = BASE_DIR / "state.json"
 DB_ID_PATH = BASE_DIR / ".notion_db_id"
 ENV_PATH = BASE_DIR / ".env"
+DATA_DIR = BASE_DIR / "data"
 
 
 def load_state() -> Dict[str, Any]:
@@ -77,6 +80,70 @@ def parse_comma_separated(value: str) -> List[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def build_dataset_row(question: Question, solved_ts: int) -> Dict[str, Any]:
+    """Build a normalized dataset row for analysis."""
+    topics = question.topics
+    solved_at_iso = ""
+    if solved_ts:
+        solved_at_iso = datetime.fromtimestamp(solved_ts, tz=timezone.utc).isoformat()
+    return {
+        "question_id": int(question.question_id),
+        "title": question.title,
+        "title_slug": question.title_slug,
+        "difficulty": question.difficulty,
+        "topics": topics,
+        "topics_joined": "|".join(topics),
+        "topic_count": len(topics),
+        "solved_timestamp": solved_ts,
+        "solved_at_utc": solved_at_iso,
+        "link": question.link,
+    }
+
+
+def write_dataset(rows: List[Dict[str, Any]], dataset_path: Path, fmt: str) -> Path:
+    """Write dataset rows to CSV or JSON file."""
+    dataset_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if fmt == "json":
+        dataset_path.write_text(json.dumps(rows, indent=2))
+        return dataset_path
+
+    fieldnames = [
+        "question_id",
+        "title",
+        "title_slug",
+        "difficulty",
+        "topics_joined",
+        "topic_count",
+        "solved_timestamp",
+        "solved_at_utc",
+        "link",
+    ]
+    with dataset_path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            csv_row = dict(row)
+            csv_row.pop("topics", None)
+            writer.writerow(csv_row)
+    return dataset_path
+
+
+def summarize_dataset(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Generate summary analytics from dataset rows."""
+    difficulty_counts = Counter(row.get("difficulty", "Unknown") for row in rows)
+    topic_counts = Counter(
+        topic
+        for row in rows
+        for topic in row.get("topics", [])
+    )
+    return {
+        "total_questions": len(rows),
+        "difficulty_distribution": dict(sorted(difficulty_counts.items())),
+        "top_topics": topic_counts.most_common(10),
+    }
+
+
 def sync_submissions(
     lc_client: LeetCodeClient,
     notion_client: NotionClient,
@@ -85,7 +152,7 @@ def sync_submissions(
     dry_run: bool = False,
     skip_difficulty: Optional[List[str]] = None,
     skip_topics: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+) -> tuple[Dict[str, Any], int, List[Dict[str, Any]]]:
     """Sync LeetCode submissions to Notion."""
     stats = {
         "total_found": 0,
@@ -94,13 +161,14 @@ def sync_submissions(
         "skipped": 0,
         "errors": 0,
     }
+    dataset_rows: List[Dict[str, Any]] = []
     
     submissions, newest_ts = lc_client.fetch_accepted_submissions_since(last_timestamp)
     stats["total_found"] = len(submissions)
     
     if not submissions:
         logger.info("No new accepted submissions found.")
-        return stats
+        return stats, newest_ts, dataset_rows
     
     logger.info(f"Found {len(submissions)} new solved problems")
     
@@ -127,6 +195,7 @@ def sync_submissions(
                     continue
             
             props = build_notion_properties(question, solved_ts)
+            dataset_rows.append(build_dataset_row(question, solved_ts))
             qid = int(question.question_id)
             page_id = notion_client.find_page_by_question_id(db_id, qid)
             
@@ -147,7 +216,7 @@ def sync_submissions(
             logger.error(f"Error processing {slug}: {e}")
             stats["errors"] += 1
     
-    return stats, newest_ts
+    return stats, newest_ts, dataset_rows
 
 
 def main():
@@ -159,6 +228,10 @@ def main():
     parser.add_argument("--skip-topics", type=parse_comma_separated, default=[], help="Skip topics")
     parser.add_argument("--force-recreate", action="store_true", help="Force recreate database")
     parser.add_argument("--resync", action="store_true", help="Resync from scratch")
+    parser.add_argument("--export-dataset", action="store_true", help="Export solved-question dataset")
+    parser.add_argument("--dataset-format", choices=["csv", "json"], default="csv", help="Dataset file format")
+    parser.add_argument("--dataset-path", default="", help="Custom dataset output path")
+    parser.add_argument("--analysis-summary", action="store_true", help="Print difficulty/topic summary")
     args = parser.parse_args()
     
     log_level = "DEBUG" if args.verbose else "INFO"
@@ -179,7 +252,11 @@ def main():
         logger.error(f"Configuration error:\n{e}")
         sys.exit(1)
     
-    lc_client = LeetCodeClient(session_cookie=env["LEETCODE_SESSION"], csrf_token=env["LEETCODE_CSRF"])
+    lc_client = LeetCodeClient(
+        session_cookie=env["LEETCODE_SESSION"],
+        csrf_token=env["LEETCODE_CSRF"],
+        cookie_header=env.get("LEETCODE_COOKIE"),
+    )
     notion_client = NotionClient(token=env["NOTION_TOKEN"])
     
     logger.info("Validating LeetCode session...")
@@ -203,7 +280,7 @@ def main():
     logger.info(f"Using database: {db_id}")
     
     try:
-        result = sync_submissions(
+        stats, newest_ts, dataset_rows = sync_submissions(
             lc_client=lc_client,
             notion_client=notion_client,
             db_id=db_id,
@@ -212,13 +289,25 @@ def main():
             skip_difficulty=args.skip_difficulty,
             skip_topics=args.skip_topics,
         )
-        
-        stats, newest_ts = result if isinstance(result, tuple) else (result, 0)
-        
+
         if not args.dry_run and newest_ts > last_timestamp:
             state["last_seen_ts"] = newest_ts
             state["total_synced"] = state.get("total_synced", 0) + stats["created"]
             save_state(state)
+
+        if args.export_dataset:
+            timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+            default_name = f"leetcode_dataset_{timestamp}.{args.dataset_format}"
+            output_path = Path(args.dataset_path) if args.dataset_path else (DATA_DIR / default_name)
+            saved_to = write_dataset(dataset_rows, output_path, args.dataset_format)
+            logger.info(f"Dataset exported: {saved_to} ({len(dataset_rows)} rows)")
+
+        if args.analysis_summary:
+            summary = summarize_dataset(dataset_rows)
+            logger.info("Analysis Summary")
+            logger.info(f"  Questions: {summary['total_questions']}")
+            logger.info(f"  Difficulty: {summary['difficulty_distribution']}")
+            logger.info(f"  Top topics: {summary['top_topics']}")
         
         logger.info("=" * 50)
         logger.info("Sync Complete!")
@@ -239,4 +328,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

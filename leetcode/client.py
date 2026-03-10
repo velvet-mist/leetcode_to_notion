@@ -2,6 +2,7 @@
 LeetCode API client with retry logic and rate limiting.
 """
 
+import re
 import time
 from typing import Dict, List, Optional, Tuple
 
@@ -44,28 +45,98 @@ class LeetCodeClient:
       }
     }
     """
+
+    USER_STATUS_QUERY = """
+    query globalData {
+      userStatus {
+        isSignedIn
+        username
+      }
+    }
+    """
+
+    SUBMISSION_LIST_QUERY = """
+    query submissionList($offset: Int!, $limit: Int!, $lastKey: String) {
+      submissionList(offset: $offset, limit: $limit, lastKey: $lastKey) {
+        lastKey
+        hasNext
+        submissions {
+          titleSlug
+          statusDisplay
+          timestamp
+        }
+      }
+    }
+    """
     
-    def __init__(self, session_cookie: str, csrf_token: str):
+    def __init__(
+        self,
+        session_cookie: str,
+        csrf_token: str,
+        cookie_header: Optional[str] = None,
+    ):
         """
         Initialize LeetCode client.
         
         Args:
             session_cookie: LeetCode session cookie
             csrf_token: LeetCode CSRF token
+            cookie_header: Raw browser Cookie header (optional)
         """
         self.session = requests.Session()
-        self._setup_headers(session_cookie, csrf_token)
+        self._setup_headers(session_cookie, csrf_token, cookie_header)
+        self._bootstrap_auth_context()
         self._validated = False
     
-    def _setup_headers(self, session_cookie: str, csrf_token: str) -> None:
+    def _setup_headers(
+        self,
+        session_cookie: str,
+        csrf_token: str,
+        cookie_header: Optional[str] = None,
+    ) -> None:
         """Setup request headers."""
-        cookie = f"LEETCODE_SESSION={session_cookie}; csrftoken={csrf_token}"
+        cookie = cookie_header.strip() if cookie_header else ""
+        if cookie.lower().startswith("cookie:"):
+            cookie = cookie.split(":", 1)[1].strip()
+        if not cookie:
+            cookie = f"LEETCODE_SESSION={session_cookie}; csrftoken={csrf_token}"
+
+        # Keep explicit csrf header for requests that enforce CSRF checks.
+        if not csrf_token:
+            match = re.search(r"(?:^|;\s*)csrftoken=([^;]+)", cookie)
+            if match:
+                csrf_token = match.group(1)
+
+        # Populate cookie jar so requests can manage additional cookies dynamically.
+        for part in cookie.split(";"):
+            if "=" not in part:
+                continue
+            key, value = part.split("=", 1)
+            self.session.cookies.set(key.strip(), value.strip(), domain="leetcode.com")
+
         self.session.headers.update({
-            "Cookie": cookie,
             "x-csrftoken": csrf_token,
             "Referer": self.BASE_URL,
+            "Origin": self.BASE_URL,
+            "Accept": "application/json, text/plain, */*",
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
         })
+
+    def _bootstrap_auth_context(self) -> None:
+        """
+        Prime session cookies from LeetCode home page.
+
+        This helps when anti-bot/session middleware expects additional cookies
+        beyond LEETCODE_SESSION/csrftoken.
+        """
+        try:
+            response = self.session.get(self.BASE_URL, timeout=self.REQUEST_TIMEOUT)
+            if response.status_code < 400:
+                csrf_cookie = self.session.cookies.get("csrftoken")
+                if csrf_cookie:
+                    self.session.headers["x-csrftoken"] = csrf_cookie
+        except requests.exceptions.RequestException as e:
+            logger.debug(f"Auth bootstrap skipped due to request error: {e}")
     
     def _request_with_retry(
         self, 
@@ -139,6 +210,18 @@ class LeetCodeClient:
             return True
             
         try:
+            # GraphQL validation first (more stable than /api/submissions for some accounts).
+            payload = {"query": self.USER_STATUS_QUERY, "variables": {}}
+            response = self._request_with_retry("POST", self.GRAPHQL_URL, json=payload)
+            user_status = response.json().get("data", {}).get("userStatus", {})
+            if user_status.get("isSignedIn"):
+                self._validated = True
+                logger.info(
+                    "LeetCode session validated via GraphQL"
+                    f" (user: {user_status.get('username', 'unknown')})"
+                )
+                return True
+
             # Try to fetch submissions - this will fail if not authenticated
             response = self._request_with_retry("GET", self.SUBMISSIONS_API)
             data = response.json()
@@ -169,51 +252,110 @@ class LeetCodeClient:
         Returns:
             Tuple of (slug -> latest timestamp dict, newest timestamp)
         """
+        logger.info(f"Fetching submissions since timestamp {last_timestamp}")
+
+        try:
+            return self._fetch_accepted_submissions_since_rest(last_timestamp)
+        except LeetCodeError as e:
+            if "403" in str(e):
+                logger.warning(
+                    "REST submissions endpoint returned 403; "
+                    "falling back to GraphQL submissionList."
+                )
+                return self._fetch_accepted_submissions_since_graphql(last_timestamp)
+            raise
+
+    def _fetch_accepted_submissions_since_rest(
+        self,
+        last_timestamp: int,
+    ) -> Tuple[Dict[str, int], int]:
+        """Fetch accepted submissions using /api/submissions endpoint."""
         submissions: Dict[str, int] = {}
         max_timestamp = last_timestamp
         last_key = ""
-        
-        logger.info(f"Fetching submissions since timestamp {last_timestamp}")
-        
+
         while True:
             url = f"{self.SUBMISSIONS_API}?offset=0&limit=100&lastkey={last_key}"
             response = self._request_with_retry("GET", url)
             data = response.json()
-            
+
             submissions_dump = data.get("submissions_dump", [])
-            
             if not submissions_dump:
                 break
-                
+
             for item in submissions_dump:
                 try:
                     ts = int(item.get("timestamp", 0))
                 except (TypeError, ValueError):
                     ts = 0
-                
-                # Stop if we've reached old submissions
+
                 if ts <= last_timestamp:
                     logger.info(f"Reached submissions up to timestamp {last_timestamp}")
                     return submissions, max_timestamp
-                
-                # Only process accepted submissions
+
                 if item.get("status_display") == "Accepted":
                     slug = item.get("title_slug")
                     if slug:
-                        # Keep the latest timestamp for each problem
                         submissions[slug] = max(submissions.get(slug, 0), ts)
                         if ts > max_timestamp:
                             max_timestamp = ts
-            
-            # Check if there are more pages
+
             if not data.get("has_next"):
                 break
-                
+
             last_key = data.get("last_key") or ""
             if not last_key:
                 break
-        
+
         logger.info(f"Found {len(submissions)} new accepted submissions")
+        return submissions, max_timestamp
+
+    def _fetch_accepted_submissions_since_graphql(
+        self,
+        last_timestamp: int,
+    ) -> Tuple[Dict[str, int], int]:
+        """Fetch accepted submissions using GraphQL submissionList endpoint."""
+        submissions: Dict[str, int] = {}
+        max_timestamp = last_timestamp
+        last_key: Optional[str] = None
+
+        while True:
+            payload = {
+                "query": self.SUBMISSION_LIST_QUERY,
+                "variables": {"offset": 0, "limit": 100, "lastKey": last_key},
+            }
+            response = self._request_with_retry("POST", self.GRAPHQL_URL, json=payload)
+            data = response.json().get("data", {}).get("submissionList", {})
+            submissions_list = data.get("submissions", [])
+
+            if not submissions_list:
+                break
+
+            for item in submissions_list:
+                try:
+                    ts = int(item.get("timestamp", 0))
+                except (TypeError, ValueError):
+                    ts = 0
+
+                if ts <= last_timestamp:
+                    logger.info(f"Reached submissions up to timestamp {last_timestamp}")
+                    return submissions, max_timestamp
+
+                if item.get("statusDisplay") == "Accepted":
+                    slug = item.get("titleSlug")
+                    if slug:
+                        submissions[slug] = max(submissions.get(slug, 0), ts)
+                        if ts > max_timestamp:
+                            max_timestamp = ts
+
+            if not data.get("hasNext"):
+                break
+
+            last_key = data.get("lastKey")
+            if not last_key:
+                break
+
+        logger.info(f"Found {len(submissions)} new accepted submissions (GraphQL)")
         return submissions, max_timestamp
     
     def fetch_question_data(self, slug: str) -> Optional[Question]:

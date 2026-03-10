@@ -21,6 +21,8 @@ Built for developers who want structured tracking beyond LeetCode’s UI.
 * ✅ Insert problems into Notion
 * ✅ Prevent duplicate entries
 * ✅ Clean, structured schema
+* ✅ Export dataset (`csv`/`json`) with question/topic/difficulty
+* ✅ Quick analysis summary (difficulty distribution + top topics)
 
 ---
 
@@ -103,9 +105,11 @@ pip install -r requirements.txt
 
 ```
 NOTION_TOKEN=your_notion_token
-NOTION_PAGE_ID=your_parent_page_id
+NOTION_PARENT_PAGE_ID=your_parent_page_id
 LEETCODE_SESSION=your_session_cookie
-LEETCODE_CSRF_TOKEN=your_csrf_token
+LEETCODE_CSRF=your_csrf_token
+# Optional fallback: paste full Cookie header copied from browser request
+# LEETCODE_COOKIE=LEETCODE_SESSION=...; csrftoken=...; other_cookie=...
 ```
 
 ---
@@ -114,6 +118,18 @@ LEETCODE_CSRF_TOKEN=your_csrf_token
 
 ```bash
 python3 main.py
+```
+
+Export dataset and print summary:
+
+```bash
+python3 main.py --resync --export-dataset --dataset-format csv --analysis-summary
+```
+
+Custom output path:
+
+```bash
+python3 main.py --export-dataset --dataset-path data/my_questions.json --dataset-format json
 ```
 
 ---
